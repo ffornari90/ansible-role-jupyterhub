@@ -5,7 +5,8 @@ services:
   
   jupyterhub:
     depends_on:
-      - http_proxy
+      - proxy
+#      - http_proxy
       {{ jupyterlab_collaborative_service_dependency }}
     image: {{ compose_base_jhub_image }}
     restart: unless-stopped
@@ -38,27 +39,69 @@ services:
       - JUPYTER_COLLAB_SERVICE={{ jupyter_collab_service }}
       - DOCKER_NOTEBOOK_MOUNT_DIR={{ jupyter_host_mount_dir }}
       - DOCKER_NOTEBOOK_DIR={{ jupyter_mount_dir }}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.jupyterhub-redirect-ssl.redirectscheme.scheme=https"
+      - "traefik.http.routers.jupyterhub-nossl.middlewares=jupyterhub-redirect-ssl"
+      - "traefik.http.routers.jupyterhub-nossl.rule=Host(`${HOST_PUBLIC_IP}.myip.cloud.infn.it`)"
+      - "traefik.http.routers.jupyterhub-nossl.entrypoints=web"
+      - "traefik.http.routers.jupyterhub.rule=Host(`${HOST_PUBLIC_IP}.myip.cloud.infn.it`)"
+      - "traefik.http.routers.jupyterhub.entrypoints=websecure"
+      - "traefik.http.routers.jupyterhub.tls.certresolver=myhttpchallenge"
+      - "traefik.http.routers.jupyterhub.tls=true"
+      - "traefik.http.services.jupyterhub.loadbalancer.server.port={{ jupyter_port }}"
 
-  http_proxy:
-    image: {{ compose_base_http_proxy_image }}
+  proxy:
+    container_name: proxy
+    image: harbor.cloud.infn.it/cache/library/traefik:${TRAEFIK_VERSION:-latest}
     restart: unless-stopped
-    command:
-      - configurable-http-proxy
-      - --ip=0.0.0.0
-      - --port={{ jupyter_port }}
-      - --api-ip=0.0.0.0
-      - --api-port=8001
-      - --default-target=http://jupyterhub:8088
-      - --error-target=http://jupyterhub:8088/hub/error
-      - --ssl-key=/usr/local/share/dodasts/certs/jupyter/hostcert.key
-      - --ssl-cert=/usr/local/share/dodasts/certs/jupyter/hostcert.pem
-    volumes:
-      - /usr/local/share/dodasts/certs/jupyter:/usr/local/share/dodasts/certs/jupyter
-    environment:
-      - CONFIGPROXY_AUTH_TOKEN={{ jupyter_proxy_token }}
     ports:
-      - {{ jupyter_port }}:{{ jupyter_port }}
-      - 8001:8001
+      - "80:80"
+      - "443:443"
+    volumes:
+      - letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /opt/storageservice/traefik:/config
+    command: /bin/sh -c "
+        traefik
+        --log.level=DEBUG
+        --api.insecure=true
+        --providers.docker=true
+        --providers.docker.exposedbydefault=false
+        --providers.file.directory=/config
+        --providers.file.watch=true
+        --entrypoints.web.address=:80
+        --entrypoints.websecure.address=:443
+        --entrypoints.web.http.redirections.entryPoint.to=websecure
+        --certificatesresolvers.myhttpchallenge.acme.httpchallenge=true
+        --certificatesresolvers.myhttpchallenge.acme.httpchallenge.entrypoint=web
+        --certificatesresolvers.myhttpchallenge.acme.email=${CONTACT_EMAIL}
+        --certificatesresolvers.myhttpchallenge.acme.storage=/letsencrypt/acme.json
+        --certificatesresolvers.myhttpchallenge.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+      "
+
+#  http_proxy:
+#    image: {{ compose_base_http_proxy_image }}
+#    restart: unless-stopped
+#    command:
+#      - configurable-http-proxy
+#      - --ip=0.0.0.0
+#      - --port={{ jupyter_port }}
+#      - --api-ip=0.0.0.0
+#      - --api-port=8001
+#      - --default-target=http://jupyterhub:8088
+#      - --error-target=http://jupyterhub:8088/hub/error
+#      - --ssl-key=/usr/local/share/dodasts/certs/jupyter/hostcert.key
+#      - --ssl-cert=/usr/local/share/dodasts/certs/jupyter/hostcert.pem
+#    volumes:
+#      - /usr/local/share/dodasts/certs/jupyter:/usr/local/share/dodasts/certs/jupyter
+#    environment:
+#      - CONFIGPROXY_AUTH_TOKEN={{ jupyter_proxy_token }}
+#    ports:
+#      - {{ jupyter_port }}:{{ jupyter_port }}
+#      - 8001:8001
     
   {{ jupyterlab_collaborative_service }}
 
