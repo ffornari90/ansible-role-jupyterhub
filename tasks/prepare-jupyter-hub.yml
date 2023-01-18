@@ -1,0 +1,213 @@
+---
+# ---------- Create directory for jupyterhub ----------
+- name: Create directory for jupyterhub
+  file:
+    path: /usr/local/share/dodasts/jupyterhub
+    state: directory
+    mode: 0755
+
+- name: Create directory for jupyterhub cookies
+  file:
+    path: /usr/local/share/dodasts/jupyterhub/cookies
+    state: directory
+    mode: 0755
+
+- name: Create directory for jupyterhub db
+  file:
+    path: /usr/local/share/dodasts/jupyterhub/db
+    state: directory
+    mode: 0755
+
+- name: Create directory for jupyter mounts
+  file:
+    path: /jupyter-mounts
+    state: directory
+    mode: 0755
+
+- name: Create directory for jupyter collaborative
+  file:
+    path: /jupyter-mounts/collaborativefolder/
+    state: directory
+    mode: 0755
+
+- name: Create directory for jupyter users
+  file:
+    path: /jupyter-mounts/users/
+    state: directory
+    mode: 0755
+
+- name: Create directory for jupyter shared
+  file:
+    path: /jupyter-mounts/shared/
+    state: directory
+    mode: 0755
+
+- name: create JUPYTERHUB_CRYPT_KEY
+  shell: openssl rand -hex 32
+  register: jupyterhub_crypt_key
+
+- name: set JUPYTER_COLLAB_SERVICE
+  set_fact:
+    key_value: "yes"
+    jupyter_collab_service: true
+  when: (jupyterlab_collaborative | bool)
+
+- name: create JUPYTERHUB_API_TOKEN
+  shell: openssl rand -hex 32
+  register: jupyterhub_api_token
+
+- name: create JUPYTER_TOKEN
+  shell: openssl rand -hex 32
+  register: jupyter_token
+  when: (jupyterlab_collaborative | bool)
+
+- name: create jupyterhub proxy token
+  shell: openssl rand -hex 32
+  register: generated_jupyter_proxy_token
+  when: (jupyter_proxy_token|length == 0)
+
+- name: change default jupyterlab collaborative image
+  set_fact:
+    key_value: "yes"
+    jupyterlab_collaborative_image_param: "image: {{ jupyterlab_collaborative_image }}"
+  when: ((jupyterlab_collaborative | bool ) and (jupyterlab_collaborative_image|length > 0))
+
+- name: add jupyter_proxy_token
+  set_fact:
+    key_value: "yes"
+    jupyter_proxy_token: "{{ generated_jupyter_proxy_token.stdout | string }}"
+  when: (jupyter_proxy_token|length == 0)
+
+# compose gpu support: https://docs.docker.com/compose/gpu-support/
+# deploy:
+#   resources:
+#     reservations:
+#       devices:
+#       - driver: nvidia
+#         count: 1
+#         capabilities: [gpu, utility]
+- name: add jupyterlab collaborative gpu
+  set_fact:
+    key_value: "yes"
+    jupyterlab_collaborative_gpu_param: |
+      deploy:
+            resources:
+              reservations:
+                devices:
+                  - capabilities: [ gpu ]
+
+  when: ((jupyterlab_collaborative | bool ) and (jupyterlab_collaborative_use_gpu | bool))
+
+- name: prepare collaborative jupyterlab
+  set_fact:
+    key_value: "yes"
+    jupyterlab_collaborative_service: |
+      collab_proxy:
+          depends_on:
+            - jupyterlab_collab
+          image: {{ compose_base_collab_http_proxy_image }}
+          restart: unless-stopped
+          environment:
+            - HOST_IP={{ server_ip }}
+            - JUPYTERHUB_BASE_URL=http://jupyterhub:8088
+            - JUPYTERHUB_API_URL=http://jupyterhub:8088/hub/api
+            - JUPYTERHUB_SERVICE_PREFIX=/services/Collaborative-Jupyter/
+            - JUPYTERHUB_API_TOKEN={{ jupyterhub_api_token.stdout | string }}
+            - JUPYTER_TOKEN={{ jupyter_token.stdout | string }}
+          ports:
+            - 8099:8099
+
+        jupyterlab_collab:
+          {{ jupyterlab_collaborative_image_param }}
+          {{ jupyterlab_collaborative_gpu_param }}
+          restart: unless-stopped
+
+          volumes:
+              - /usr/local/share/dodasts/certs/jupyter:/usr/local/share/dodasts/certs/jupyter
+              - /jupyter-mounts/collaborativefolder/:/jupyter-workspace/collaborativefolder
+          environment:
+              - JUPYTER_TOKEN={{ jupyter_token.stdout | string }}
+              - JUPYTERHUB_API_TOKEN={{ jupyterhub_api_token.stdout | string }}
+          ports:
+            - 8889:8888
+  when: (jupyterlab_collaborative | bool)
+
+- name: add jupyterlab collaborative dependency
+  set_fact:
+    key_value: "yes"
+    jupyterlab_collaborative_service_dependency: "- collab_proxy"
+  when: (jupyterlab_collaborative | bool)
+
+- name: ram size
+  debug:
+    var: ansible_facts.memtotal_mb
+
+- name: create ram giga var
+  set_fact:
+    key_value: "yes"
+    ram_giga: "{{ ((ansible_facts.memtotal_mb|int) / 1000)| round | int }}"
+
+- name: create ram list
+  set_fact:
+    key_value: "yes"
+    list_ram_sizes: "{{ [1] + range(2, (ram_giga|int) + 1, 2) | list }}"
+
+- name: result ram list
+  debug:
+    var: list_ram_sizes
+
+- name: create ram list string
+  set_fact:
+    key_value: "yes"
+    list_ram_size: "{{ list_ram_sizes | product(['G']) | map('join', '') | list | join(',') }}"
+
+- name: "prepare variables for jupyter"
+  set_fact:
+    key_value: "yes"
+    jupyter_gpu: "WITH_GPU=true"
+    cacheable: yes
+  when: (jupyter_use_gpu | bool)
+
+- block:
+  - name: register iam client
+    uri:
+      url: "{{ iam_url }}/register"
+      validate_certs: "no"
+      method: POST
+      status_code: 201
+      headers:
+         Content-Type: "application/json"
+      body:
+        redirect_uris:
+          - "https://{{ server_ip }}:{{ jupyter_port }}/hub/oauth_callback"
+        client_name: "jh-client"
+        token_endpoint_auth_method: client_secret_basic
+        scope: openid email profile wlcg offline_access address wlcg.groups
+        grant_types:
+          - refresh_token
+          - authorization_code
+        response_types:
+          - code
+      body_format: json
+      return_content: yes
+    register: iam_response
+
+  - name: Save client info
+    copy:
+      content: "{{ iam_response.json }}"
+      dest: "/usr/local/share/dodasts/jupyterhub/cookies/.client-iam.json"
+
+- name: prepare compose file
+  template:
+    src: jupyter_hub-compose.j2
+    dest: /usr/local/share/dodasts/jupyterhub/docker-compose.yaml
+  vars:
+    iam_client_id: "{{ iam_response.json.client_id }}"
+    iam_client_secret: "{{ iam_response.json.client_secret }}"
+
+# finally pre-cache default images
+- name: pull images
+  command: docker pull "{{ item }}"
+  with_items: "{{ jupyter_images.split() + [ jupyterlab_collaborative_image, compose_base_jhub_image, compose_base_http_proxy_image, compose_base_collab_http_proxy_image ] }}"
+  async: 1800 # 30 min
+  poll: 0
