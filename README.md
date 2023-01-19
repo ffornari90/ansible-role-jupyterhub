@@ -1,4 +1,4 @@
-# ansible-role-jupyterhub-env [![Ansible Lint](https://github.com/DODAS-TS/ansible-role-jupyterhub-env/actions/workflows/ansible-lint.yml/badge.svg)](https://github.com/DODAS-TS/ansible-role-jupyterhub-env/actions/workflows/ansible-lint.yml)
+# ansible-role-jupyterhub 
 
 A role to setup a node with a jupyterhub that spawns jupyterlab with or without GPU utilization and a monitoring service.
 
@@ -78,7 +78,7 @@ Including an example of how to use your role (for instance, with variables passe
 ```yaml
     - hosts: servers
       roles:
-         - role: ansible-role-jupyterhub-env
+         - role: ansible-role-jupyterhub
            server_ip: "a.b.c.d"
            jupyterlab_collaborative: yes 
            monitoring: no 
@@ -108,14 +108,3 @@ Including an example of how to use your role (for instance, with variables passe
 * Installation reference:
   * [cuda driver](https://docs.nvidia.com/datacenter/tesla/tesla-installation-notes/index.html)
   * [nvidia docker installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker)
-
-License
--------
-
-Apache 2.0
-
-Author Information
-------------------
-
-DODAS-TS
-

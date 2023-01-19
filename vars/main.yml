@@ -1,5 +1,5 @@
 ---
-# vars file for ansible-role-jupyterhub-env
+# vars file for ansible-role-jupyterhub
 jupyter_gpu: "WITH_GPU=false"
 cvmfs_service: ""
 compose_base_jhub_image: "{{ jupyter_hub_image }}"
