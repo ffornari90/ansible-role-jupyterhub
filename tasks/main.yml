@@ -48,10 +48,6 @@
     # Force reload
     state: reloaded
 
-# ---------- Make self signed certificates ----------
-- name: Make self signed certificates
-  include_tasks: make-self-signed-certificates.yml
-
 # ---------- Setup CVMFS ----------
 - name: Setup CVMFS
   include_tasks: cvmfs.yml
@@ -60,6 +56,10 @@
 # ---------- Jupyter hub ----------
 - name: prepare Jupyter Hub
   include_tasks: prepare-jupyter-hub.yml
+
+# ---------- configure docker compose environment ----------
+- name: configure docker compose environment
+  include_tasks: configure-compose-environment.yml
 
 - name: run Jupyter Hub
   shell:
