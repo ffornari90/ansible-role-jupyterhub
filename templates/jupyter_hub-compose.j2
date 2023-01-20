@@ -105,6 +105,9 @@ services:
     
   {{ jupyterlab_collaborative_service }}
 
+volumes:
+  letsencrypt:
+
 networks:
   default:
     name: jupyterhub
