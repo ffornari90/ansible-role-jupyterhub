@@ -5,8 +5,7 @@ services:
   
   jupyterhub:
     depends_on:
-      - proxy
-#      - http_proxy
+      - http_proxy
       {{ jupyterlab_collaborative_service_dependency }}
     image: {{ compose_base_jhub_image }}
     restart: unless-stopped
@@ -49,7 +48,7 @@ services:
       - "traefik.http.routers.jupyterhub.entrypoints=websecure"
       - "traefik.http.routers.jupyterhub.tls.certresolver=myhttpchallenge"
       - "traefik.http.routers.jupyterhub.tls=true"
-      - "traefik.http.services.jupyterhub.loadbalancer.server.port={{ jupyter_port }}"
+      - "traefik.http.services.jupyterhub.loadbalancer.server.port=8000"
 
   proxy:
     container_name: proxy
@@ -65,7 +64,9 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /opt/storageservice/traefik:/config
     command: /bin/sh -c "
-        traefik
+        touch /letsencrypt/acme.json
+        && chmod 644 /letsencrypt/acme.json
+        && traefik
         --log.level=DEBUG
         --api.insecure=true
         --providers.docker=true
@@ -82,26 +83,53 @@ services:
         --certificatesresolvers.myhttpchallenge.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
       "
 
-#  http_proxy:
-#    image: {{ compose_base_http_proxy_image }}
-#    restart: unless-stopped
-#    command:
-#      - configurable-http-proxy
-#      - --ip=0.0.0.0
-#      - --port={{ jupyter_port }}
-#      - --api-ip=0.0.0.0
-#      - --api-port=8001
-#      - --default-target=http://jupyterhub:8088
-#      - --error-target=http://jupyterhub:8088/hub/error
-#      - --ssl-key=/usr/local/share/dodasts/certs/jupyter/hostcert.key
-#      - --ssl-cert=/usr/local/share/dodasts/certs/jupyter/hostcert.pem
-#    volumes:
-#      - /usr/local/share/dodasts/certs/jupyter:/usr/local/share/dodasts/certs/jupyter
-#    environment:
-#      - CONFIGPROXY_AUTH_TOKEN={{ jupyter_proxy_token }}
-#    ports:
-#      - {{ jupyter_port }}:{{ jupyter_port }}
-#      - 8001:8001
+  grafana_sidecar:
+    depends_on:
+      - proxy
+    image: alpine:latest
+    command: /bin/sh -c "
+        apk add --no-cache jq
+        && while [ ! -f /letsencrypt/acme.json ] ; do sleep 1 ; done
+        && jq -r '.myhttpchallenge | .Certificates[] | select(.domain.main==\"'${HOST_PUBLIC_IP}.myip.cloud.infn.it'\") | .key'
+           /letsencrypt/acme.json | base64 -d > /usr/local/share/dodasts/certs/grafana/hostcert.key
+        && jq -r '.myhttpchallenge | .Certificates[] | select(.domain.main==\"'${HOST_PUBLIC_IP}.myip.cloud.infn.it'\") | .certificate'
+           /letsencrypt/acme.json | base64 -d > /usr/local/share/dodasts/certs/grafana/hostcert.pem
+        && chown -R 472:472 /usr/local/share/dodasts/certs/grafana
+      "
+    volumes:
+      - letsencrypt:/letsencrypt
+      - /usr/local/share/dodasts/certs/grafana:/usr/local/share/dodasts/certs/grafana
+
+  http_proxy:
+    depends_on:
+      - proxy
+    image: {{ compose_base_http_proxy_image }}
+    restart: unless-stopped
+    entrypoint: /bin/sh
+    command: -c "
+        while [ ! -f /letsencrypt/acme.json ] ; do sleep 1 ; done
+        && jq -r '.myhttpchallenge | .Certificates[] | select(.domain.main==\"'${HOST_PUBLIC_IP}.myip.cloud.infn.it'\") | .key'
+           /letsencrypt/acme.json | base64 -d > /usr/local/share/dodasts/certs/jupyter/hostcert.key
+        && jq -r '.myhttpchallenge | .Certificates[] | select(.domain.main==\"'${HOST_PUBLIC_IP}.myip.cloud.infn.it'\") | .certificate'
+           /letsencrypt/acme.json | base64 -d > /usr/local/share/dodasts/certs/jupyter/hostcert.pem
+        && configurable-http-proxy
+        --ip=0.0.0.0
+        --port={{ jupyter_port }}
+        --api-ip=0.0.0.0
+        --api-port=8001
+        --default-target=http://jupyterhub:8088
+        --error-target=http://jupyterhub:8088/hub/error
+        --ssl-key=/usr/local/share/dodasts/certs/jupyter/hostcert.key
+        --ssl-cert=/usr/local/share/dodasts/certs/jupyter/hostcert.pem
+      "
+    volumes:
+      - letsencrypt:/letsencrypt
+      - /usr/local/share/dodasts/certs/jupyter:/usr/local/share/dodasts/certs/jupyter
+    environment:
+      - CONFIGPROXY_AUTH_TOKEN={{ jupyter_proxy_token }}
+    ports:
+      - {{ jupyter_port }}:{{ jupyter_port }}
+      - 8001:8001
     
   {{ jupyterlab_collaborative_service }}
 

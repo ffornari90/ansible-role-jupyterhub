@@ -12,3 +12,11 @@
     create: yes
   with_items:
      - { key: "HOST_PUBLIC_IP", value: "{% if IM_NODE_PUBLIC_IP is defined %}{{IM_NODE_PUBLIC_IP}}{% else %}{{IM_NODE_PRIVATE_IP}}{% endif %}" }
+
+- name: create certificates directories
+  shell:
+    cmd: |
+      mkdir -p /usr/local/share/dodasts/certs/jupyter \
+      && mkdir -p /usr/local/share/dodasts/certs/grafana \
+      && chown -R 472:472 /usr/local/share/dodasts/certs/grafana \
+      && chown -R nobody:nogroup /usr/local/share/dodasts/certs/jupyter
