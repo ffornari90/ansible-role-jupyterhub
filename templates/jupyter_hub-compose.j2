@@ -64,9 +64,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /opt/storageservice/traefik:/config
     command: /bin/sh -c "
-        touch /letsencrypt/acme.json
-        && chmod 644 /letsencrypt/acme.json
-        && traefik
+        traefik
         --log.level=DEBUG
         --api.insecure=true
         --providers.docker=true
