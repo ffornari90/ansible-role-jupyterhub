@@ -89,13 +89,14 @@ services:
     command: /bin/sh -c "
         apk add --no-cache jq
         && while true; do if ! jq -e . /letsencrypt/acme.json > /dev/null; then sleep 5; else break; fi; done
-        && jq -r '.myhttpchallenge | .Certificates[] | select(.domain.main==\"'${HOST_PUBLIC_IP}.myip.cloud.infn.it'\") | .key'
-           /letsencrypt/acme.json | base64 -d > /usr/local/share/dodasts/certs/grafana/hostcert.key
+        && while true; do output=$$(jq -r '.myhttpchallenge | .Certificates[] | select(.domain.main==\"'${HOST_PUBLIC_IP}.myip.cloud.infn.it'\") | .key'
+           /letsencrypt/acme.json | base64 -d | tee /usr/local/share/dodasts/certs/grafana/hostcert.key);
+           if [[ -z \"$$output\" || $$? -ne 0 ]]; then sleep 5; else break; fi; done
         && jq -r '.myhttpchallenge | .Certificates[] | select(.domain.main==\"'${HOST_PUBLIC_IP}.myip.cloud.infn.it'\") | .certificate'
            /letsencrypt/acme.json | base64 -d > /usr/local/share/dodasts/certs/grafana/hostcert.pem
         && chown -R 472:472 /usr/local/share/dodasts/certs/grafana
         && chown nobody:nogroup /letsencrypt/acme.json
-        && nc -k -l -p 1337
+        && nc -klp 1337
       "
     volumes:
       - letsencrypt:/letsencrypt
@@ -108,7 +109,7 @@ services:
     restart: unless-stopped
     entrypoint: /bin/sh
     command: -c "
-        while ! nc -z grafana_sidecar 1337 ; do sleep 5 ; done
+        while ! nc -z grafana_sidecar 1337; do sleep 5; done
         && jq -r '.myhttpchallenge | .Certificates[] | select(.domain.main==\"'${HOST_PUBLIC_IP}.myip.cloud.infn.it'\") | .key'
            /letsencrypt/acme.json | base64 -d > /usr/local/share/dodasts/certs/jupyter/hostcert.key
         && jq -r '.myhttpchallenge | .Certificates[] | select(.domain.main==\"'${HOST_PUBLIC_IP}.myip.cloud.infn.it'\") | .certificate'
