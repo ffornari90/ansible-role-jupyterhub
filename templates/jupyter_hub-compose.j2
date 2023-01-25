@@ -88,7 +88,6 @@ services:
     container_name: grafana_sidecar
     command: /bin/sh -c "
         apk add --no-cache jq
-        && while true; do if ! jq -e . /letsencrypt/acme.json > /dev/null; then sleep 5; else break; fi; done
         && while true; do output=$$(jq -r '.myhttpchallenge | .Certificates[] | select(.domain.main==\"'${HOST_PUBLIC_IP}.myip.cloud.infn.it'\") | .key'
            /letsencrypt/acme.json | base64 -d | tee /usr/local/share/dodasts/certs/grafana/hostcert.key);
            if [[ -z \"$$output\" || $$? -ne 0 ]]; then sleep 5; else break; fi; done
