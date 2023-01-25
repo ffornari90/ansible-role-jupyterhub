@@ -1,11 +1,4 @@
-- name: Set environment variables
-  lineinfile:
-    path: /usr/local/share/dodasts/jupyterhub/.env
-    line: "{{ item.key }}={{ item.value }}"
-    create: yes
-  with_dict: "{{ environment_variables }}"
-
-- name: Add HOST_PUBLIC_IP and additional environment variables
+- name: Add HOST_PUBLIC_IP to docker-compose environment variables
   lineinfile:
     path: /usr/local/share/dodasts/jupyterhub/.env
     line: "{{ item.key }}={{ item.value }}"
