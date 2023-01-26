@@ -17,6 +17,7 @@ jupyter_proxy_token: ""
 
 #traefik
 contact_email: ""
+letsencrypt_test: true
 
 # https://github.com/DODAS-TS/jupyterhub-ML_INFN/blob/collaborative/Dockerfile
 jupyter_hub_image: "dodasts/snj-base-jhub:v1.0.0-snj"
