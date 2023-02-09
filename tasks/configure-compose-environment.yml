@@ -6,6 +6,11 @@
   with_items:
      - { key: "HOST_PUBLIC_IP", value: "{% if IM_NODE_PUBLIC_IP is defined %}{{IM_NODE_PUBLIC_IP}}{% else %}{{IM_NODE_PRIVATE_IP}}{% endif %}" }
 
+- name: Create a directory for traefik configuration
+  file:
+    path: /opt/traefik
+    state: directory
+
 - name: Create configuration file for traefik
   file:
     path: /opt/traefik/tls.toml
