@@ -108,7 +108,7 @@
           image: {{ compose_base_collab_http_proxy_image }}
           restart: unless-stopped
           environment:
-            - HOST_IP={{ server_ip }}
+            - HOST_IP={{ dns_name }}
             - JUPYTERHUB_BASE_URL=http://jupyterhub:8088
             - JUPYTERHUB_API_URL=http://jupyterhub:8088/hub/api
             - JUPYTERHUB_SERVICE_PREFIX=/services/Collaborative-Jupyter/
