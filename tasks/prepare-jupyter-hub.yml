@@ -175,6 +175,7 @@
       method: GET
       return_content: yes
     register: openid_config
+  - name: Set registration endpoint variable
     set_fact:
       registration_endpoint: "{{ openid_config.json.registration_endpoint }}"
   - name: register iam client
