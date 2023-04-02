@@ -27,7 +27,7 @@ services:
       - ADMIN_OAUTH_GROUPS={{ iam_admin_groups }}
       - IAM_CLIENT_ID={{ iam_client_id }}
       - IAM_CLIENT_SECRET={{ iam_client_secret }}
-      - JUPYTER_IMAGE_LIST={{ jupyter_images }}
+      - JUPYTER_IMAGE_LIST=jupyter_matlab
       - JUPYTER_RAM_LIST={{ list_ram_size }}
       - JUPYTER_PROXY_TOKEN={{ jupyter_proxy_token }}
       - JUPYTERHUB_API_TOKEN={{  jupyterhub_api_token.stdout | string }}

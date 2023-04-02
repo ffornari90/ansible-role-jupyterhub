@@ -6,6 +6,12 @@
     state: directory
     mode: 0755
 
+- name: Create directory for jupyter_matlab
+  file:
+    path: /usr/local/share/dodasts/jupyter_matlab
+    state: directory
+    mode: 0755
+
 - name: Create directory for jupyterhub cookies
   file:
     path: /usr/local/share/dodasts/jupyterhub/cookies
@@ -220,3 +226,22 @@
   with_items: "{{ jupyter_images.split() + [ jupyterlab_collaborative_image, compose_base_jhub_image, compose_base_http_proxy_image, compose_base_collab_http_proxy_image ] }}"
   async: 1800 # 30 min
   poll: 0
+
+- name: prepare matlab dockerfile
+  template:
+    src: jupyter_matlab-docker.j2
+    dest: /usr/local/share/dodasts/jupyter_matlab/Dockerfile
+  vars:
+    base_image: "{{ jupyter_images }}"
+
+- name: build matlab image
+  docker_image:
+    name: jupyter_matlab
+    build:
+      path: /usr/local/share/dodasts/jupyter_matlab
+      args:
+        matlab_release: "{{ matlab_release }}"
+        matlab_product_list: "{{ matlab_product_list }}"
+        license_server: "{{ matlab_license_server }}"
+      source: build
+    state: present

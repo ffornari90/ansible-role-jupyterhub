@@ -15,9 +15,14 @@ run_jupyter: yes
 jupyter_port: "8888"
 jupyter_proxy_token: ""
 
-#traefik
+# traefik
 contact_email: ""
 letsencrypt_test: true
+
+# matlab
+matlab_release: "r2022b"
+matlab_product_list: "MATLAB"
+matlab_license_server: "27000@lm-matlab.infn.it"
 
 # https://github.com/DODAS-TS/jupyterhub-ML_INFN/blob/collaborative/Dockerfile
 jupyter_hub_image: "dodasts/snj-base-jhub:v1.1.1-snj"
