@@ -10,10 +10,18 @@ services:
     image: {{ compose_base_jhub_image }}
     restart: unless-stopped
     command:
-      - /usr/bin/python3
-      - /usr/local/bin/jupyterhub
-      - --debug
-      - --config=/srv/jupyterhub/jupyterhub_config.py
+      - /bin/sh
+      - -c
+      - |
+        apt update -y
+        apt install apt-transport-https curl gnupg-agent ca-certificates software-properties-common -y
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+        add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+        groupadd -g 998 docker
+        apt install docker-ce docker-ce-cli containerd.io -y
+        docker login --username {{ harbor_username }} --password {{ harbor_password }} harbor.cloud.infn.it
+        /usr/bin/python3 /usr/local/bin/jupyterhub --debug --config=/srv/jupyterhub/jupyterhub_config.py
+    privileged: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/local/share/dodasts/jupyterhub/cookies:/srv/jupyterhub/cookies
@@ -27,7 +35,7 @@ services:
       - ADMIN_OAUTH_GROUPS={{ iam_admin_groups }}
       - IAM_CLIENT_ID={{ iam_client_id }}
       - IAM_CLIENT_SECRET={{ iam_client_secret }}
-      - JUPYTER_IMAGE_LIST=jupyter_matlab
+      - JUPYTER_IMAGE_LIST=harbor.cloud.infn.it/beta-testers/jupyter_matlab_{{ harbor_username }}
       - JUPYTER_RAM_LIST={{ list_ram_size }}
       - JUPYTER_PROXY_TOKEN={{ jupyter_proxy_token }}
       - JUPYTERHUB_API_TOKEN={{  jupyterhub_api_token.stdout | string }}

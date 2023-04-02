@@ -24,6 +24,10 @@ matlab_release: "r2022b"
 matlab_product_list: "MATLAB"
 matlab_license_server: "27000@lm-matlab.infn.it"
 
+# harbor
+harbor_username: ""
+harbor_password: ""
+
 # https://github.com/DODAS-TS/jupyterhub-ML_INFN/blob/collaborative/Dockerfile
 jupyter_hub_image: "dodasts/snj-base-jhub:v1.1.1-snj"
 jupyter_images: "dodasts/snj-base-lab:v1.1.1-snj" # Comma separated image list

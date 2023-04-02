@@ -234,14 +234,21 @@
   vars:
     base_image: "{{ jupyter_images }}"
 
+- name: log into Harbor
+  docker_login:
+    username: "{{ harbor_username }}"
+    password: "{{ harbor_password }}"
+    registry_url: harbor.cloud.infn.it
+
 - name: build matlab image
   docker_image:
-    name: jupyter_matlab
+    name: harbor.cloud.infn.it/beta-testers/jupyter_matlab_"{{ harbor_username }}"
     build:
       path: /usr/local/share/dodasts/jupyter_matlab
       args:
-        matlab_release: "{{ matlab_release }}"
-        matlab_product_list: "{{ matlab_product_list }}"
-        license_server: "{{ matlab_license_server }}"
+        MATLAB_RELEASE: "{{ matlab_release }}"
+        MATLAB_PRODUCT_LIST: "{{ matlab_product_list }}"
+        LICENSE_SERVER: "{{ matlab_license_server }}"
     source: build
     state: present
+    push: true
