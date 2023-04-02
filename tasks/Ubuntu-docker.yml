@@ -9,4 +9,4 @@
   apt:
     name: python-docker
     state: present
-    clean: true
+    autoclean: yes
