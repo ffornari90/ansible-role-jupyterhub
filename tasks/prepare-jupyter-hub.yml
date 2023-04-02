@@ -242,7 +242,7 @@
 
 - name: build matlab image
   docker_image:
-    name: harbor.cloud.infn.it/beta-testers/jupyter_matlab_"{{ harbor_username }}"
+    name: "harbor.cloud.infn.it/beta-testers/jupyter_matlab_{{ harbor_username }}"
     build:
       path: /usr/local/share/dodasts/jupyter_matlab
       args:
