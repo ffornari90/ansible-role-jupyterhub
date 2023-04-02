@@ -4,3 +4,9 @@
     cmd: curl https://get.docker.com | sh
     creates: /usr/bin/docker
     warn: False # To prevent warning on using curl as a cmd
+
+- name: install python-docker [Ubuntu]
+  apt:
+    name: python-docker
+    state: present
+    clean: true
