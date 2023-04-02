@@ -243,5 +243,5 @@
         matlab_release: "{{ matlab_release }}"
         matlab_product_list: "{{ matlab_product_list }}"
         license_server: "{{ matlab_license_server }}"
-      source: build
+    source: build
     state: present
