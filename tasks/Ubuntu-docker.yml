@@ -7,6 +7,6 @@
 
 - name: install python-docker [Ubuntu]
   apt:
-    name: python-docker
+    name: python3-docker
     state: present
     autoclean: yes
