@@ -97,11 +97,12 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update \
     && python setup.py install || true
 
 # Switch back to notebook user
-USER $NB_USER
-WORKDIR /home/${NB_USER}
+RUN adduser --disabled-password --gecos '' docker
+USER docker
+WORKDIR /home/docker
 
 # Install integration
-RUN python3 -m pip install jupyter-matlab-proxy
+RUN python3 -m pip install --user jupyter-matlab-proxy
 
 
 
