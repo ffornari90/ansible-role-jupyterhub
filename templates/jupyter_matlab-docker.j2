@@ -96,14 +96,13 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update \
     && cd /opt/matlab/extern/engines/python \
     && python setup.py install || true
 
+# Install integration
+RUN python3 -m pip install jupyter-matlab-proxy
+
 # Switch back to notebook user
 RUN adduser --disabled-password --gecos '' docker
 USER docker
 WORKDIR /home/docker
-
-# Install integration
-RUN python3 -m pip install --user jupyter-matlab-proxy
-
 
 
 # Make JupyterLab the default environment
