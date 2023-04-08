@@ -99,13 +99,28 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update \
 # Install integration
 RUN python3 -m pip install jupyter-matlab-proxy
 
-# Switch back to notebook user
-RUN adduser --disabled-password --gecos '' docker
-USER docker
-WORKDIR /home/docker
+ARG UNAME
+ENV USERNAME=${UNAME}
+ENV BASE_CACHE_DIR="/usr/local/share/dodasts/sts-wire/cache"
 
+RUN mkdir -p ${BASE_CACHE_DIR} && \
+    mkdir -p /usr/local/share/dodasts/sts-wire/cache && \
+    mkdir -p /var/log/sts-wire/ && \
+    mkdir -p /s3/ && \
+    mkdir -p /s3/${USERNAME} && \
+    mkdir -p /s3/scratch
+
+# Switch back to notebook user
+RUN adduser --disabled-password --group --system --gecos '' --home /home/${USERNAME} ${USERNAME} && \
+    chmod -R g+w /s3 && chgrp -R ${USERNAME} /s3 && \
+    chmod -R g+w /var/log/sts-wire && chgrp -R ${USERNAME} /var/log/sts-wire && \
+    chmod -R g+w /usr/local/share/dodasts/sts-wire && chgrp -R ${USERNAME} /usr/local/share/dodasts/sts-wire
 
 # Make JupyterLab the default environment
 ENV JUPYTER_ENABLE_LAB="yes"
 
 ENV MW_CONTEXT_TAGS=${MW_CONTEXT_TAGS}
+
+CMD /usr/local/share/dodasts/script/post_script.sh
+USER ${USERNAME}
+WORKDIR /s3

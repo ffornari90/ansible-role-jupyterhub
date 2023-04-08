@@ -249,6 +249,7 @@
         MATLAB_RELEASE: "{{ matlab_release }}"
         MATLAB_PRODUCT_LIST: "{{ matlab_product_list }}"
         LICENSE_SERVER: "{{ matlab_license_server }}"
+        UNAME: "{{ harbor_username }}"
     source: build
     state: present
     push: true
